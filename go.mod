@@ -1,4 +1,4 @@
-module github.com/GenneratorX/Cloudflare-TLSA-Updater
+module github.com/GenneratorX/CloudFlare-TLSA-Updater
 
 go 1.21
 
