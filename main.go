@@ -55,14 +55,11 @@ func main() {
 	printError(err)
 
 	infoLog.Println("fetching current TLSA DNS records")
-	dnsRecords, _, err := api.ListDNSRecords(
-		context.Background(),
-		cloudflare.ZoneIdentifier(zoneId),
-		cloudflare.ListDNSRecordsParams{Type: "TLSA"},
-	)
+	removableRecords, err := getRemovableDNSRecords(api, zoneId, cert)
 	printError(err)
 
-	errs := removeDNSRecords(api, zoneId, dnsRecords)
+	infoLog.Println("found", len(removableRecords), "TLSA DNS records that can be removed")
+	errs := removeDNSRecords(api, zoneId, removableRecords)
 	errsCount := 0
 	for i := 0; i < len(errs); i++ {
 		if errs[i] != nil {
@@ -138,7 +135,7 @@ func getRemovableDNSRecords(api *cloudflare.API, zoneId string, cert *x509.Certi
 	return removableRecords, nil
 }
 
-func removeDNSRecords(api *cloudflare.API, zoneId string, dnsRecords []cloudflare.DNSRecord) []error {
+func removeDNSRecords(api *cloudflare.API, zoneId string, dnsRecords []string) []error {
 	ctx := context.Background()
 	removeErrors := make([]error, len(dnsRecords))
 
@@ -147,9 +144,9 @@ func removeDNSRecords(api *cloudflare.API, zoneId string, dnsRecords []cloudflar
 	for i := 0; i < len(dnsRecords); i++ {
 		go func(i int) {
 			defer wg.Done()
-			err := api.DeleteDNSRecord(ctx, cloudflare.ZoneIdentifier(zoneId), dnsRecords[i].ID)
+			err := api.DeleteDNSRecord(ctx, cloudflare.ZoneIdentifier(zoneId), dnsRecords[i])
 			if err != nil {
-				removeErrors[i] = errors.New("TLSA " + dnsRecords[i].Name + " - " + err.Error())
+				removeErrors[i] = errors.New("TLSA " + dnsRecords[i] + " - " + err.Error())
 			}
 		}(i)
 	}
