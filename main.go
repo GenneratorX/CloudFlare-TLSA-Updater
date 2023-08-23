@@ -62,7 +62,6 @@ func main() {
 	)
 	printError(err)
 
-	infoLog.Println("removing current TLSA DNS records")
 	errs := removeDNSRecords(api, zoneId, dnsRecords)
 	errsCount := 0
 	for i := 0; i < len(errs); i++ {
@@ -114,6 +113,29 @@ func parseCert(certPath *string) (*x509.Certificate, error) {
 	}
 
 	return x509.ParseCertificate(cert.Bytes)
+}
+
+func getRemovableDNSRecords(api *cloudflare.API, zoneId string, cert *x509.Certificate) ([]string, error) {
+	dnsRecords, _, err := api.ListDNSRecords(
+		context.Background(),
+		cloudflare.ZoneIdentifier(zoneId),
+		cloudflare.ListDNSRecordsParams{Type: "TLSA"},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	removableRecords := make([]string, 0, len(cert.DNSNames))
+	for i := 0; i < len(cert.DNSNames); i++ {
+		for j := 0; j < len(dnsRecords); j++ {
+			if dnsRecords[j].Name == "_443._tcp."+cert.DNSNames[i] {
+				removableRecords = append(removableRecords, dnsRecords[j].ID)
+				break
+			}
+		}
+	}
+
+	return removableRecords, nil
 }
 
 func removeDNSRecords(api *cloudflare.API, zoneId string, dnsRecords []cloudflare.DNSRecord) []error {
