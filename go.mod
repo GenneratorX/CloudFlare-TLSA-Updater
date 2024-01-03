@@ -2,7 +2,7 @@ module github.com/GenneratorX/CloudFlare-TLSA-Updater
 
 go 1.21
 
-require github.com/cloudflare/cloudflare-go v0.84.0
+require github.com/cloudflare/cloudflare-go v0.85.0
 
 require (
 	github.com/goccy/go-json v0.10.2 // indirect
